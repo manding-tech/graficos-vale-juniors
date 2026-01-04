@@ -1,0 +1,65 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>FEL 2</title>
+    <script src="https://www.gstatic.com/charts/loader.js"></script>
+    <script>
+      google.charts.load('current', { packages: ['corechart'] });
+      google.charts.setOnLoadCallback(draw);
+
+      async function draw() {
+        const csvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSHkysTN6roFag5cFJv97rmXIsO9vKLKaAXmJxbeAD0v4klws329T8nwBI1ftUFKvrukkvLYM9vPysK/pub?gid=1447223465&single=true&output=csv';
+        const res = await fetch(csvUrl);
+        const csv = await res.text();
+
+        const rows = csv
+          .trim()
+          .split('\n')
+          .filter(r => r.trim().length > 0);
+
+        const data = new google.visualization.DataTable();
+
+        // Colunas: Nome, X, Y
+        data.addColumn('string', 'Name_Chart');
+        data.addColumn('number', 'M+I (%)');
+        data.addColumn('number', 'P+P/M+I (%)');
+
+        for (let i = 1; i < rows.length; i++) {
+          let r = rows[i].split(',').map(c => c.replace(/"/g, '').trim());
+
+          if (r.length < 3) continue;
+
+          const name = r[0];
+          const x = parseFloat(r[1].replace('%',''));
+          const y = parseFloat(r[2].replace('%',''));
+
+          if (!isNaN(x) && !isNaN(y)) {
+            data.addRow([name, x, y]);
+          }
+        }
+
+        const options = {
+          title: 'FEL 2',
+          titlePosition: 'center',
+          titleTextstyle: {
+            fontsize: 18,
+            bold: true,
+            color: '#000'
+          },
+          hAxis: { title: 'M+I (%)' },
+          vAxis: { title: 'P+P/M+I (%)' },
+          height: 500,
+          pointSize: 10, // tamanho fixo das bolhas
+          tooltip: { isHtml: true }
+        };
+
+        const chart = new google.visualization.ScatterChart(document.getElementById('chart'));
+        chart.draw(data, options);
+      }
+    </script>
+  </head>
+  <body>
+    <div id="chart"></div>
+  </body>
+</html>
