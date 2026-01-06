@@ -22,8 +22,8 @@
 
         // Colunas: Nome, X, Y
         data.addColumn('string', 'Name_Chart');
-        data.addColumn('number', 'M+I (%)');
-        data.addColumn('number', 'P+P/M+I (%)');
+        data.addColumn('number', 'Measured + Indicated (%)');
+        data.addColumn('number', 'Proved + Probable/Measured + Indicated (%)');
 
         for (let i = 1; i < rows.length; i++) {
           let r = rows[i].split(',').map(c => c.replace(/"/g, '').trim());
@@ -47,8 +47,8 @@
             bold: true,
             color: '#000'
           },
-          hAxis: { title: 'M+I (%)' },
-          vAxis: { title: 'P+P/M+I (%)' },
+          hAxis: { title: 'Measured + Indicated (%)' },
+          vAxis: { title: 'Proved + Probable/Measured + Indicated (%)' },
           height: 500,
           pointSize: 10, // tamanho fixo das bolhas
           tooltip: { isHtml: true }
@@ -66,3 +66,4 @@
   </body>
 
 </html>
+
