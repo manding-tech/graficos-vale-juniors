@@ -1,104 +1,69 @@
 <!doctype html>
 <html>
-<head>
-  <meta charset="utf-8">
-  <title>Exploration Target</title>
+  <head>
+    <meta charset="utf-8" />
+    <title>Exploration Target</title>
+    <script src="https://www.gstatic.com/charts/loader.js"></script>
+    <script>
+      google.charts.load('current', { packages: ['corechart'] });
+      google.charts.setOnLoadCallback(draw);
 
-  <script src="https://www.gstatic.com/charts/loader.js"></script>
+      async function draw() {
+        const csvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSHkysTN6roFag5cFJv97rmXIsO9vKLKaAXmJxbeAD0v4klws329T8nwBI1ftUFKvrukkvLYM9vPysK/pub?gid=1283363545&single=true&output=csv';
+        const res = await fetch(csvUrl);
+        const csv = await res.text();
 
-  <script>
-    google.charts.load('current', { packages: ['corechart'] });
-    google.charts.setOnLoadCallback(draw);
+        const rows = csv
+          .trim()
+          .split('\n')
+          .filter(r => r.trim().length > 0);
 
-    async function draw() {
-      const csvUrl =
-        'https://docs.google.com/spreadsheets/d/e/2PACX-1vSHkysTN6roFag5cFJv97rmXIsO9vKLKaAXmJxbeAD0v4klws329T8nwBI1ftUFKvrukkvLYM9vPysK/pub?gid=1283363545&single=true&output=csv';
+        const data = new google.visualization.DataTable();
 
-      const res = await fetch(csvUrl);
-      const csv = await res.text();
-      const rows = csv.trim().split('\n').slice(1);
+        // Colunas: Nome, X, Y
+        data.addColumn('string', 'Name_Chart');
+        data.addColumn('number', 'Measured + Indicated (%)');
+        data.addColumn('number', 'Proved + Probable/Measured + Indicated (%)');
 
-      const data = new google.visualization.DataTable();
+        for (let i = 1; i < rows.length; i++) {
+          let r = rows[i].split(',').map(c => c.replace(/"/g, '').trim());
 
-      // X e Y
-      data.addColumn('number', 'P+P / M+I');          // X
-      data.addColumn('number', 'Measured + Indicated'); // Y
+          if (r.length < 3) continue;
 
-      // Tooltip
-      data.addColumn({ type: 'string', role: 'tooltip', p: { html: true } });
+          const name = r[0];
+          const x = parseFloat(r[1].replace('%',''));
+          const y = parseFloat(r[2].replace('%',''));
 
-      // Link (para clique)
-      data.addColumn({ type: 'string', role: 'annotationText' });
+          if (!isNaN(x) && !isNaN(y)) {
+            data.addRow([name, x, y]);
+          }
+        }
 
-      rows.forEach(r => {
-        const c = r.split(',').map(v => v.replace(/"/g, '').trim());
+        const options = {
+          title: 'Exploration Target',
+          titlePosition: 'center',
+          titleTextstyle: {
+            fontsize: 18,
+            bold: true,
+            color: '#000'
+          },
+          hAxis: { title: 'Measured + Indicated (%)' },
+          vAxis: { title: 'Proved + Probable/Measured + Indicated (%)' },
+          height: 500,
+          pointSize: 10, // tamanho fixo das bolhas
+          tooltip: { isHtml: true }
+        };
 
-        const name = c[0];
-        const pp = parseFloat(c[2]);   // X (0–1)
-        const mi = parseFloat(c[1]);   // Y (0–1)
-        const resources = c[3];
-        const ore = c[4];
-        const link = c[5];
-
-        if (isNaN(pp) || isNaN(mi)) return;
-
-        const tooltip = `
-          <div style="padding:8px; max-width:230px">
-            <b>${name}</b><br>
-            Measured + Indicated: ${mi}<br>
-            P+P / M+I: ${pp}<br>
-            Resources: ${resources} Mt<br>
-            Ore type: ${ore}<br>
-            <span style="color:#1a73e8; font-size:11px">
-              Click point to open source
-            </span>
-          </div>
-        `;
-
-        data.addRow([pp, mi, tooltip, link]);
-      });
-
-      const options = {
-        title: 'Exploration Target',
-        height: 520,
-        pointSize: 8,
-        tooltip: { isHtml: true },
-
-        hAxis: {
-          title: 'P+P / M+I (0–1)',
-          minValue: 0,
-          maxValue: 1
-        },
-
-        vAxis: {
-          title: 'Measured + Indicated (0–1)',
-          minValue: 0,
-          maxValue: 1
-        },
-
-        colors: ['#1a73e8']
-      };
-
-      const chart = new google.visualization.ScatterChart(
-        document.getElementById('chart')
-      );
-
-      // Clique funcional
-      google.visualization.events.addListener(chart, 'select', () => {
-        const sel = chart.getSelection();
-        if (!sel.length) return;
-
-        const link = data.getValue(sel[0].row, 3);
-        if (link) window.open(link, '_blank');
-      });
-
-      chart.draw(data, options);
-    }
-  </script>
-</head>
-
-<body>
-  <div id="chart"></div>
-</body>
+        const chart = new google.visualization.ScatterChart(
+          document.getElementById('chart')
+        );
+        chart.draw(data, options);
+      }
+    </script>
+  </head>
+  <body>
+    <div id="chart"></div>
+  </body>
 </html>
+
 
