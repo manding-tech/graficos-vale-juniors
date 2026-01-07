@@ -2,7 +2,7 @@
 <html>
   <head>
     <meta charset="utf-8" />
-    <title>Exploration Target</title>
+    <title>Scoping Study</title>
 
     <script src="https://www.gstatic.com/charts/loader.js"></script>
 
@@ -24,16 +24,22 @@
 
         const data = new google.visualization.DataTable();
 
-        data.addColumn('number', 'Measured + Indicated');
-        data.addColumn(
-          'number',
-          'Proved + Probable / Measured + Indicated'
-        );
+        // Eixo X categórico
+        data.addColumn('string', 'Project');
+
+        // Séries
+        data.addColumn('number', 'Measured + Indicated (%)');
+        data.addColumn('number', 'Proved + Probable / Measured + Indicated (%)');
+
+        // Tooltip HTML
         data.addColumn({
           type: 'string',
           role: 'tooltip',
           p: { html: true }
         });
+
+        // Link oculto para clique
+        data.addColumn('string', 'source_link');
 
         for (let i = 1; i < rows.length; i++) {
           const r = rows[i].split(',').map(c =>
@@ -43,52 +49,68 @@
           if (r.length < 6) continue;
 
           const name = r[0];
-          const x = parseFloat(r[1]); // 0–1
-          const y = parseFloat(r[2]); // 0–1
+          const mi = parseFloat(r[1]); // 0–1
+          const ppmi = parseFloat(r[2]); // 0–1
           const resources = r[3];
           const oreType = r[4];
           const source = r[5];
 
-          if (isNaN(x) || isNaN(y)) continue;
+          if (isNaN(mi) || isNaN(ppmi)) continue;
 
           const tooltip = `
             <div style="padding:10px; max-width:260px;">
               <strong>${name}</strong><br><br>
-              <b>Measured + Indicated:</b> ${(x * 100).toFixed(1)}%<br>
-              <b>P+P / M+I:</b> ${(y * 100).toFixed(1)}%<br>
+              <b>Measured + Indicated:</b> ${(mi * 100).toFixed(1)}%<br>
+              <b>P+P / M+I:</b> ${(ppmi * 100).toFixed(1)}%<br>
               <b>Resources:</b> ${resources} Mt<br>
               <b>Ore Type:</b> ${oreType}<br>
-              <b>Source:</b>
-              <a href="${source}" target="_blank">Open link</a>
+              <i>Click the point to open source</i>
             </div>
           `;
 
-          data.addRow([x, y, tooltip]);
+          data.addRow([name, mi, ppmi, tooltip, source]);
         }
 
         const options = {
-          title: 'Exploration Target',
-          titlePosition: 'center',
+          title: 'Scoping Study',
           height: 500,
-          pointSize: 10,
+          pointSize: 8,
           tooltip: { isHtml: true },
+          legend: { position: 'right' },
           hAxis: {
-            title: 'Measured + Indicated (%)',
+            title: 'Projects',
+            slantedText: true,
+            slantedTextAngle: 45
+          },
+          vAxis: {
+            title: 'Ratio (%)',
             minValue: 0,
             maxValue: 1,
             format: 'percent'
           },
-          vAxis: {
-            title: 'Proved + Probable / Measured + Indicated (%)',
-            minValue: 0,
-            maxValue: 1,
-            format: 'percent'
+          series: {
+            0: { color: '#3366cc' }, // azul
+            1: { color: '#dc3912' }  // vermelho
           }
         };
 
         const chart = new google.visualization.ScatterChart(
           document.getElementById('chart')
         );
+
+        // 👉 Clique funcional no ponto
+        google.visualization.events.addListener(chart, 'select', function () {
+          const selection = chart.getSelection();
+          if (!selection.length) return;
+
+          const row = selection[0].row;
+          const link = data.getValue(row, 4);
+
+          if (link) {
+            window.open(link, '_blank');
+          }
+        });
+
         chart.draw(data, options);
       }
     </script>
@@ -98,7 +120,6 @@
     <div id="chart"></div>
   </body>
 </html>
-
 
 
 
