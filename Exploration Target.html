@@ -24,12 +24,9 @@
 
         const data = new google.visualization.DataTable();
 
-        // X categórico
-        data.addColumn('string', 'Project');
-
-        // Séries
-        data.addColumn('number', 'Measured + Indicated (%)');
-        data.addColumn('number', 'Proved + Probable / Measured + Indicated (%)');
+        // ORDEM CORRETA PARA SCATTER
+        data.addColumn('number', 'Measured + Indicated (%)'); // X
+        data.addColumn('number', 'P+P / M+I (%)');            // Y
 
         // Tooltip HTML
         data.addColumn({
@@ -39,7 +36,7 @@
         });
 
         // Link oculto
-        data.addColumn('string', 'source_link');
+        data.addColumn('string', 'source');
 
         for (let i = 1; i < rows.length; i++) {
           const r = rows[i].split(',').map(c =>
@@ -49,8 +46,8 @@
           if (r.length < 6) continue;
 
           const name = r[0];
-          const mi = parseFloat(r[1]);   // 0–1
-          const ppmi = parseFloat(r[2]); // 0–1
+          const mi = parseFloat(r[1]);     // 0–1
+          const ppmi = parseFloat(r[2]);   // 0–1
           const resources = r[3];
           const oreType = r[4];
           const source = r[5];
@@ -64,40 +61,37 @@
               <b>P+P / M+I:</b> ${(ppmi * 100).toFixed(1)}%<br>
               <b>Resources:</b> ${resources} Mt<br>
               <b>Ore Type:</b> ${oreType}<br>
-              <i>Click the point to open source</i>
+              <i>Click to open source</i>
             </div>
           `;
 
-          data.addRow([name, mi, ppmi, tooltip, source]);
+          data.addRow([mi, ppmi, tooltip, source]);
         }
 
         const options = {
           title: 'Scoping Study',
           height: 520,
+          pointSize: 8,
           tooltip: { isHtml: true },
-          legend: { position: 'right' },
 
           hAxis: {
-            title: 'Projects',
-            slantedText: true,
-            slantedTextAngle: 45
-          },
-
-          vAxis: {
-            title: 'Ratio (%)',
+            title: 'Measured + Indicated (%)',
             minValue: 0,
             maxValue: 1,
             format: 'percent'
           },
 
-          seriesType: 'scatter',
-          series: {
-            0: { color: '#3366cc', pointSize: 8 },
-            1: { color: '#dc3912', pointSize: 8 }
-          }
+          vAxis: {
+            title: 'Proved + Probable / Measured + Indicated (%)',
+            minValue: 0,
+            maxValue: 1,
+            format: 'percent'
+          },
+
+          legend: 'none'
         };
 
-        const chart = new google.visualization.ComboChart(
+        const chart = new google.visualization.ScatterChart(
           document.getElementById('chart')
         );
 
@@ -107,7 +101,7 @@
           if (!sel.length) return;
 
           const row = sel[0].row;
-          const link = data.getValue(row, 4);
+          const link = data.getValue(row, 3);
 
           if (link) {
             window.open(link, '_blank');
