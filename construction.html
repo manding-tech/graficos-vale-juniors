@@ -24,42 +24,22 @@
 
         const data = new google.visualization.DataTable();
 
-        // Estrutura principal (não muda o layout)
         data.addColumn('string', 'Name_Chart');
-        data.addColumn('number', 'Measured + Indicated (%)');
-        data.addColumn('number', 'Proved + Probable / Measured + Indicated (%)');
-
-        // Tooltip HTML
-        data.addColumn({ type: 'string', role: 'tooltip', p: { html: true } });
-
-        const links = [];
+        data.addColumn('number', 'Measured + Indicated');
+        data.addColumn('number', 'Proved + Probable / Measured + Indicated');
 
         for (let i = 1; i < rows.length; i++) {
           const r = rows[i].split(',').map(c => c.replace(/"/g, '').trim());
-          if (r.length < 6) continue;
+
+          if (r.length < 3) continue;
 
           const name = r[0];
-          const x = parseFloat(r[1].replace('%', ''));
-          const y = parseFloat(r[2].replace('%', '')) / 100; // eixo Y em 0–1
-          const resources = r[3];
-          const oreType = r[4];
-          const link = r[5];
+          const x = parseFloat(r[1]);
+          const y = parseFloat(r[2]); // 0–1 (sem conversão)
 
-          if (isNaN(x) || isNaN(y)) continue;
-
-          const tooltip = `
-            <div style="padding:8px; font-size:13px">
-              <strong>${name}</strong><br><br>
-              <b>Measured + Indicated:</b> ${x}%<br>
-              <b>P+P / M+I:</b> ${(y * 100).toFixed(1)}%<br>
-              <b>Resources (Mt):</b> ${resources}<br>
-              <b>Ore Type:</b> ${oreType}<br>
-              <span style="color:#0066cc">Click to open source</span>
-            </div>
-          `;
-
-          data.addRow([name, x, y, tooltip]);
-          links.push(link);
+          if (!isNaN(x) && !isNaN(y)) {
+            data.addRow([name, x, y]);
+          }
         }
 
         const options = {
@@ -67,14 +47,13 @@
           titlePosition: 'center',
           titleTextStyle: {
             fontSize: 18,
-            bold: true,
-            color: '#000'
+            bold: true
           },
           hAxis: {
-            title: 'Measured + Indicated (%)'
+            title: 'Measured + Indicated'
           },
           vAxis: {
-            title: 'Proved + Probable / Measured + Indicated (%)',
+            title: 'Proved + Probable / Measured + Indicated',
             minValue: 0,
             maxValue: 1
           },
@@ -86,18 +65,6 @@
         const chart = new google.visualization.ScatterChart(
           document.getElementById('chart')
         );
-
-        // Clique funcional → link da coluna F
-        google.visualization.events.addListener(chart, 'select', function () {
-          const sel = chart.getSelection();
-          if (!sel.length) return;
-
-          const row = sel[0].row;
-          if (links[row]) {
-            window.open(links[row], '_blank');
-          }
-        });
-
         chart.draw(data, options);
       }
     </script>
@@ -107,3 +74,4 @@
     <div id="chart"></div>
   </body>
 </html>
+
