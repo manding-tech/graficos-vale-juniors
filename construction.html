@@ -17,29 +17,43 @@
         const res = await fetch(csvUrl);
         const csv = await res.text();
 
-        const rows = csv
-          .trim()
-          .split('\n')
-          .filter(r => r.trim().length > 0);
+        const rows = csv.trim().split('\n').filter(r => r.trim());
 
         const data = new google.visualization.DataTable();
 
         data.addColumn('string', 'Name_Chart');
-        data.addColumn('number', 'Measured + Indicated');
-        data.addColumn('number', 'Proved + Probable / Measured + Indicated');
+        data.addColumn('number', 'Measured + Indicated (%)');
+        data.addColumn('number', 'Proved + Probable / Measured + Indicated (%)');
+        data.addColumn({ type: 'string', role: 'tooltip', p: { html: true } });
+
+        const links = [];
 
         for (let i = 1; i < rows.length; i++) {
           const r = rows[i].split(',').map(c => c.replace(/"/g, '').trim());
-
-          if (r.length < 3) continue;
+          if (r.length < 6) continue;
 
           const name = r[0];
-          const x = parseFloat(r[1]);
-          const y = parseFloat(r[2]); // 0–1 (sem conversão)
+          const mi = parseFloat(r[1]);
+          const ratio = parseFloat(r[2]);
+          const resources = r[3];
+          const oreType = r[4];
+          const link = r[5];
 
-          if (!isNaN(x) && !isNaN(y)) {
-            data.addRow([name, x, y]);
-          }
+          if (isNaN(mi) || isNaN(ratio)) continue;
+
+          const tooltip = `
+            <div style="padding:8px; font-size:13px">
+              <strong>${name}</strong><br><br>
+              <b>Measured + Indicated:</b> ${mi}<br>
+              <b>P+P / M+I:</b> ${ratio}<br>
+              <b>Resources (Mt):</b> ${resources}<br>
+              <b>Ore Type:</b> ${oreType}<br>
+              <span style="color:#0066cc">Click to open source</span>
+            </div>
+          `;
+
+          data.addRow([name, mi, ratio, tooltip]);
+          links.push(link);
         }
 
         const options = {
@@ -50,10 +64,12 @@
             bold: true
           },
           hAxis: {
-            title: 'Measured + Indicated'
+            title: 'Measured + Indicated (%)',
+            minValue: 0,
+            maxValue: 1
           },
           vAxis: {
-            title: 'Proved + Probable / Measured + Indicated',
+            title: 'Proved + Probable / Measured + Indicated (%)',
             minValue: 0,
             maxValue: 1
           },
@@ -65,6 +81,17 @@
         const chart = new google.visualization.ScatterChart(
           document.getElementById('chart')
         );
+
+        google.visualization.events.addListener(chart, 'select', function () {
+          const sel = chart.getSelection();
+          if (!sel.length) return;
+
+          const row = sel[0].row;
+          if (links[row]) {
+            window.open(links[row], '_blank');
+          }
+        });
+
         chart.draw(data, options);
       }
     </script>
