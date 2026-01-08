@@ -4,12 +4,15 @@
     <meta charset="utf-8" />
     <title>Pre-Feasibility Study</title>
     <script src="https://www.gstatic.com/charts/loader.js"></script>
+
     <script>
       google.charts.load('current', { packages: ['corechart'] });
       google.charts.setOnLoadCallback(draw);
 
       async function draw() {
-        const csvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSHkysTN6roFag5cFJv97rmXIsO9vKLKaAXmJxbeAD0v4klws329T8nwBI1ftUFKvrukkvLYM9vPysK/pub?gid=1447223465&single=true&output=csv';
+        const csvUrl =
+          'https://docs.google.com/spreadsheets/d/e/2PACX-1vSHkysTN6roFag5cFJv97rmXIsO9vKLKaAXmJxbeAD0v4klws329T8nwBI1ftUFKvrukkvLYM9vPysK/pub?gid=1447223465&single=true&output=csv';
+
         const res = await fetch(csvUrl);
         const csv = await res.text();
 
@@ -20,48 +23,89 @@
 
         const data = new google.visualization.DataTable();
 
-        // Colunas: Nome, X, Y
+        // Estrutura ORIGINAL preservada
         data.addColumn('string', 'Name_Chart');
         data.addColumn('number', 'Measured + Indicated (%)');
         data.addColumn('number', 'Proved + Probable / Measured + Indicated (%)');
 
-        for (let i = 1; i < rows.length; i++) {
-          let r = rows[i].split(',').map(c => c.replace(/"/g, '').trim());
+        // 🔹 Tooltip HTML
+        data.addColumn({ type: 'string', role: 'tooltip', p: { html: true } });
 
-          if (r.length < 3) continue;
+        const links = [];
+
+        for (let i = 1; i < rows.length; i++) {
+          const r = rows[i].split(',').map(c => c.replace(/"/g, '').trim());
+          if (r.length < 6) continue;
 
           const name = r[0];
-          const x = parseFloat(r[1].replace('%',''));
-          const y = parseFloat(r[2].replace('%',''));
+          const x = parseFloat(r[1]);
+          const y = parseFloat(r[2]);
+          const resources = r[3];
+          const oreType = r[4];
+          const link = r[5];
 
-          if (!isNaN(x) && !isNaN(y)) {
-            data.addRow([name, x, y]);
-          }
+          if (isNaN(x) || isNaN(y)) continue;
+
+          const tooltip = `
+            <div style="padding:8px; font-size:13px">
+              <strong>${name}</strong><br><br>
+              <b>Measured + Indicated:</b> ${x}<br>
+              <b>P+P / M+I:</b> ${y}<br>
+              <b>Resources (Mt):</b> ${resources}<br>
+              <b>Ore Type:</b> ${oreType}<br>
+              <span style="color:#0066cc">Click to open source</span>
+            </div>
+          `;
+
+          data.addRow([name, x, y, tooltip]);
+          links.push(link);
         }
 
         const options = {
           title: 'Pre-Feasibility Study',
           titlePosition: 'center',
-          titleTextstyle: {
-            fontsize: 18,
+          titleTextStyle: {
+            fontSize: 18,
             bold: true,
             color: '#000'
           },
-          hAxis: { title: 'Measured + Indicated (%)' },
-          vAxis: { title: 'Proved + Probable / Measured + Indicated (%)' },
+          hAxis: {
+            title: 'Measured + Indicated (%)',
+            minValue: 0,
+            maxValue: 1
+          },
+          vAxis: {
+            title: 'Proved + Probable / Measured + Indicated (%)',
+            minValue: 0,
+            maxValue: 1
+          },
           height: 500,
-          pointSize: 10, // tamanho fixo das bolhas
+          pointSize: 10,
           tooltip: { isHtml: true }
         };
 
-        const chart = new google.visualization.ScatterChart(document.getElementById('chart'));
+        const chart = new google.visualization.ScatterChart(
+          document.getElementById('chart')
+        );
+
+        // 🔹 Clique abre o link da coluna F
+        google.visualization.events.addListener(chart, 'select', function () {
+          const sel = chart.getSelection();
+          if (!sel.length) return;
+
+          const row = sel[0].row;
+          if (links[row]) {
+            window.open(links[row], '_blank');
+          }
+        });
+
         chart.draw(data, options);
       }
     </script>
   </head>
+
   <body>
     <div id="chart"></div>
   </body>
-
 </html>
 
