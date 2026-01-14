@@ -1,111 +1,204 @@
 <!doctype html>
-<html>
-  <head>
-    <meta charset="utf-8" />
-    <title>Pre-Feasibility Study</title>
-    <script src="https://www.gstatic.com/charts/loader.js"></script>
+<html lang="pt-br">
+<head>
+<meta charset="utf-8">
+<title>Pre-Feasibility Study</title>
 
-    <script>
-      google.charts.load('current', { packages: ['corechart'] });
-      google.charts.setOnLoadCallback(draw);
+<script src="https://www.gstatic.com/charts/loader.js"></script>
 
-      async function draw() {
-        const csvUrl =
-          'https://docs.google.com/spreadsheets/d/e/2PACX-1vSHkysTN6roFag5cFJv97rmXIsO9vKLKaAXmJxbeAD0v4klws329T8nwBI1ftUFKvrukkvLYM9vPysK/pub?gid=1447223465&single=true&output=csv';
+<style>
+body{
+  font-family:Arial, sans-serif;
+  margin:0;
+  padding:20px;
+  background:#f5f5f5;
+}
 
-        const res = await fetch(csvUrl);
-        const csv = await res.text();
+/* ===== MENU ===== */
+#menu{
+  text-align:center;
+  margin-bottom:15px;
+}
+#menu button{
+  padding:8px 18px;
+  margin:0 6px;
+  border:none;
+  border-radius:4px;
+  background:#ddd;
+  cursor:pointer;
+  font-weight:bold;
+}
+#menu button.active{
+  background:#4a6fa5;
+  color:#fff;
+}
 
-        const rows = csv
-          .trim()
-          .split('\n')
-          .filter(r => r.trim().length > 0);
+/* ===== GRÁFICOS ===== */
+.chart{
+  width:100%;
+  height:520px;
+  display:none;
+  background:
+    linear-gradient(rgba(255,255,255,.7), rgba(255,255,255,.7)),
+    url('fundo.jpg') center/cover no-repeat;
+}
+</style>
+</head>
 
-        const data = new google.visualization.DataTable();
+<body>
 
-        // Estrutura ORIGINAL preservada
-        data.addColumn('string', 'Name_Chart');
-        data.addColumn('number', 'Measured + Indicated (%)');
-        data.addColumn('number', 'Proved + Probable / Measured + Indicated (%)');
+<h2 style="text-align:center">Pre-Feasibility Study</h2>
 
-        // 🔹 Tooltip HTML
-        data.addColumn({ type: 'string', role: 'tooltip', p: { html: true } });
+<div id="menu">
+  <button id="btnScatter" class="active">Scatter Chart</button>
+  <button id="btnBubble">Bubble Chart</button>
+</div>
 
-        const links = [];
+<div id="scatter" class="chart"></div>
+<div id="bubble" class="chart"></div>
 
-        for (let i = 1; i < rows.length; i++) {
-          const r = rows[i].split(',').map(c => c.replace(/"/g, '').trim());
-          if (r.length < 6) continue;
+<script>
+google.charts.load('current',{packages:['corechart']});
+google.charts.setOnLoadCallback(loadData);
 
-          const name = r[0];
-          const x = parseFloat(r[1]);
-          const y = parseFloat(r[2]);
-          const resources = r[3];
-          const oreType = r[4];
-          const link = r[5];
+const csvUrl =
+'https://docs.google.com/spreadsheets/d/e/2PACX-1vSHkysTN6roFag5cFJv97rmXIsO9vKLKaAXmJxbeAD0v4klws329T8nwBI1ftUFKvrukkvLYM9vPysK/pub?gid=1447223465&single=true&output=csv';
 
-          if (isNaN(x) || isNaN(y)) continue;
+let rows;
+let scatterChart, bubbleChart;
+let scatterData, bubbleData;
+let scatterOptions, bubbleOptions;
 
-          const tooltip = `
-            <div style="padding:8px; font-size:13px">
-              <strong>${name}</strong><br><br>
-              <b>Measured + Indicated:</b> ${x}<br>
-              <b>P+P / M+I:</b> ${y}<br>
-              <b>Resources (Mt):</b> ${resources}<br>
-              <b>Ore Type:</b> ${oreType}<br>
-              <span style="color:#0066cc">Click to open source</span>
-            </div>
-          `;
+async function loadData(){
+  const res = await fetch(csvUrl);
+  const csv = await res.text();
+  rows = csv.trim().split('\n')
+    .map(r=>r.split(',').map(c=>c.replace(/"/g,'').trim()));
 
-          data.addRow([name, x, y, tooltip]);
-          links.push(link);
-        }
+  drawScatter();
+  drawBubble();
+  showScatter();
+}
 
-        const options = {
-          title: 'Pre-Feasibility Study',
-          titlePosition: 'center',
-          titleTextStyle: {
-            fontSize: 18,
-            bold: true,
-            color: '#000'
-          },
-          hAxis: {
-            title: 'Measured + Indicated (%)',
-            minValue: 0,
-            maxValue: 1
-          },
-          vAxis: {
-            title: 'Proved + Probable / Measured + Indicated (%)',
-            minValue: 0,
-            maxValue: 1
-          },
-          height: 500,
-          pointSize: 10,
-          tooltip: { isHtml: true }
-        };
+/* ===== SCATTER (INALTERADO) ===== */
+function drawScatter(){
+  scatterData = new google.visualization.DataTable();
+  scatterData.addColumn('string','Name');
+  scatterData.addColumn('number','Measured + Indicated');
+  scatterData.addColumn('number','P+P / M+I');
+  scatterData.addColumn({type:'string', role:'tooltip', p:{html:true}});
 
-        const chart = new google.visualization.ScatterChart(
-          document.getElementById('chart')
-        );
+  const links = [];
 
-        // 🔹 Clique abre o link da coluna F
-        google.visualization.events.addListener(chart, 'select', function () {
-          const sel = chart.getSelection();
-          if (!sel.length) return;
+  for(let i=1;i<rows.length;i++){
+    const [name,mi,ratio,,ore,link] = rows[i];
+    if(isNaN(mi)||isNaN(ratio)) continue;
 
-          const row = sel[0].row;
-          if (links[row]) {
-            window.open(links[row], '_blank');
-          }
-        });
+    scatterData.addRow([
+      name,
+      parseFloat(mi),
+      parseFloat(ratio),
+      `<strong>${name}</strong><br><br>
+       Measured + Indicated: ${mi}<br>
+       P+P / M+I: ${ratio}<br>
+       Ore Type: ${ore}<br>
+       <span style="color:#0066cc">Click to open source</span>`
+    ]);
+    links.push(link);
+  }
 
-        chart.draw(data, options);
-      }
-    </script>
-  </head>
+  scatterOptions = {
+    hAxis:{ title:'Measured + Indicated (%)', minValue:-0.1, maxValue:1, baselineColor:'transparent' },
+    vAxis:{ title:'P+P / M+I (%)', minValue:0, maxValue:1 },
+    tooltip:{ isHtml:true },
+    pointSize:10,
+    height:520,
+    backgroundColor:'transparent',
+    chartArea:{ backgroundColor:'transparent' }
+  };
 
-  <body>
-    <div id="chart"></div>
-  </body>
+  scatterChart = new google.visualization.ScatterChart(scatter);
+  google.visualization.events.addListener(scatterChart,'select',()=>{
+    const sel = scatterChart.getSelection();
+    if(sel.length && links[sel[0].row]) window.open(links[sel[0].row],'_blank');
+  });
+}
+
+/* ===== BUBBLE SEM GRADIENTE ===== */
+function drawBubble(){
+  bubbleData = new google.visualization.DataTable();
+  bubbleData.addColumn('string','ID');
+  bubbleData.addColumn('number','Measured + Indicated');
+  bubbleData.addColumn('number','P+P / M+I');
+  bubbleData.addColumn('string','Ore Type');   // COR CATEGÓRICA
+  bubbleData.addColumn('number','Resources');  // TAMANHO
+  bubbleData.addColumn({type:'string', role:'tooltip', p:{html:true}});
+  bubbleData.addColumn('string','Link');
+
+  for(let i=1;i<rows.length;i++){
+    const [name,mi,ratio,res,ore,link] = rows[i];
+    const resources = parseFloat(res?.replace(/[^\d.]/g,''));
+    if(isNaN(mi)||isNaN(ratio)||isNaN(resources)) continue;
+
+    bubbleData.addRow([
+  '',   // ← SEM TEXTO NAS BOLINHAS
+  parseFloat(mi),
+  parseFloat(ratio),
+  ore,
+  resources,
+  `<strong>${name}</strong><br><br>
+   Measured + Indicated: ${mi}<br>
+   P+P / M+I: ${ratio}<br>
+   Resources (Mt): ${resources}<br>
+   Ore Type: ${ore}<br>
+   <span style="color:#0066cc">Click to open source</span>`,
+  link
+]);
+  }
+
+  bubbleOptions = {
+    hAxis:{ title:'Measured + Indicated (%)', minValue:-0.1, maxValue:1, baselineColor:'transparent' },
+    vAxis:{ title:'P+P / M+I (%)', minValue:0, maxValue:1 },
+    bubble:{ textStyle:{ fontSize:0 } },   // REMOVE TEXTO NAS BOLHAS
+    tooltip:{ isHtml:true },
+    legend:{ position:'right' },
+    height:520,
+    backgroundColor:'transparent',
+    chartArea:{ backgroundColor:'transparent' }
+  };
+
+  bubbleChart = new google.visualization.BubbleChart(bubble);
+  google.visualization.events.addListener(bubbleChart,'select',()=>{
+    const sel = bubbleChart.getSelection();
+    if(sel.length){
+      const link = bubbleData.getValue(sel[0].row,6);
+      if(link) window.open(link,'_blank');
+    }
+  });
+}
+
+/* ===== MENU ===== */
+btnScatter.onclick = showScatter;
+btnBubble.onclick = showBubble;
+
+function showScatter(){
+  scatter.style.display='block';
+  bubble.style.display='none';
+  btnScatter.classList.add('active');
+  btnBubble.classList.remove('active');
+  scatterChart.draw(scatterData, scatterOptions);
+}
+
+function showBubble(){
+  scatter.style.display='none';
+  bubble.style.display='block';
+  btnBubble.classList.add('active');
+  btnScatter.classList.remove('active');
+  bubbleChart.draw(bubbleData, bubbleOptions);
+}
+</script>
+
+</body>
 </html>
+
 
