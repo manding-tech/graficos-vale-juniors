@@ -265,8 +265,8 @@ async function drawBubble() {
   });
 
   chart.draw(data,{
-    hAxis:{ title:'Measured + Indicated (%)', minValue:-0.1, baselineColor:'transparent' },
-    vAxis:{ title:'P+P / M+I (%)', baselineColor:'transparent' },
+    hAxis:{ title:'Measured + Indicated (%)', minValue:-0.1, maxValue:1.0, baselineColor:'transparent' },
+    vAxis:{ title:'P+P / M+I (%)', minValue:-0.1, maxValue:1.0, baselineColor:'transparent' },
     bubble:{ textStyle:{ fontSize:0 } },
     legend:{ position:'right' },
     tooltip:{ trigger:'none' },
@@ -302,6 +302,7 @@ async function drawBubble() {
 
 </body>
 </html>
+
 
 
 
