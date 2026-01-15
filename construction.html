@@ -1,104 +1,304 @@
 <!doctype html>
-<html>
-  <head>
-    <meta charset="utf-8" />
-    <title>Construction</title>
+<html lang="pt-br">
+<head>
+<meta charset="utf-8">
+<title>Construction</title>
 
-    <script src="https://www.gstatic.com/charts/loader.js"></script>
+<script src="https://www.gstatic.com/charts/loader.js"></script>
 
-    <script>
-      google.charts.load('current', { packages: ['corechart'] });
-      google.charts.setOnLoadCallback(draw);
+<style>
+body {
+  font-family: Arial, sans-serif;
+  background: #f5f5f5;
+  margin: 0;
+  padding: 20px;
+}
 
-      async function draw() {
-        const csvUrl =
-          'https://docs.google.com/spreadsheets/d/e/2PACX-1vSHkysTN6roFag5cFJv97rmXIsO9vKLKaAXmJxbeAD0v4klws329T8nwBI1ftUFKvrukkvLYM9vPysK/pub?gid=1396253890&single=true&output=csv';
+/* ===== TÍTULO ===== */
+.page-title {
+  text-align: center;
+  font-size: 28px;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 20px;
+}
 
-        const res = await fetch(csvUrl);
-        const csv = await res.text();
+/* ===== MENU ===== */
+.chart-menu {
+  text-align: center;
+  margin-bottom: 15px;
+  position: relative;
+  z-index: 1000;
+}
 
-        const rows = csv.trim().split('\n').filter(r => r.trim());
+.chart-menu button {
+  padding: 8px 16px;
+  margin: 0 6px;
+  border: none;
+  border-radius: 4px;
+  background: #e0e0e0;
+  cursor: pointer;
+  font-weight: bold;
+}
 
-        const data = new google.visualization.DataTable();
+.chart-menu button.active {
+  background: #9e9e9e;
+  color: #fff;
+}
 
-        data.addColumn('string', 'Name_Chart');
-        data.addColumn('number', 'Measured + Indicated (%)');
-        data.addColumn('number', 'Proved + Probable / Measured + Indicated (%)');
-        data.addColumn({ type: 'string', role: 'tooltip', p: { html: true } });
+/* ===== CONTAINER ===== */
+.chart-box {
+  display: none;
+  position: relative;
+  width: 100%;
+  height: 520px;
+}
 
-        const links = [];
+.chart-box.active {
+  display: block;
+}
 
-        for (let i = 1; i < rows.length; i++) {
-          const r = rows[i].split(',').map(c => c.replace(/"/g, '').trim());
-          if (r.length < 6) continue;
+/* FUNDO */
+.chart-bg::before {
+  content: "";
+  position: absolute;
+  inset: -30%;
+  background-image: url('fundo.jpg');
+  background-size: cover;
+  background-position: center;
+  opacity: 0.25;
+  z-index: 0;
+}
 
-          const name = r[0];
-          const mi = parseFloat(r[1]);
-          const ratio = parseFloat(r[2]);
-          const resources = r[3];
-          const oreType = r[4];
-          const link = r[5];
+.chart-bg > * {
+  position: relative;
+  z-index: 1;
+}
 
-          if (isNaN(mi) || isNaN(ratio)) continue;
+/* TOOLTIP CUSTOMIZADO */
+#customTooltip {
+  position: absolute;
+  background: #ffffff;
+  border: 1px solid #bbb;
+  padding: 10px 12px;
+  font-size: 13px;
+  line-height: 1.5;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+  border-radius: 4px;
+  display: none;
+  pointer-events: none;
+  z-index: 9999;
+  white-space: nowrap;
+}
 
-          const tooltip = `
-            <div style="padding:8px; font-size:13px">
-              <strong>${name}</strong><br><br>
-              <b>Measured + Indicated:</b> ${mi}<br>
-              <b>P+P / M+I:</b> ${ratio}<br>
-              <b>Resources (Mt):</b> ${resources}<br>
-              <b>Ore Type:</b> ${oreType}<br>
-              <span style="color:#0066cc">Click to open source</span>
-            </div>
-          `;
+/* LEGENDA SIMPLES DO TAMANHO */
+.size-legend {
+  margin-top: 6px;
+  margin-left: 80px;
+  font-size: 15px;
+  color: #000;
+  text-align: left;
+}
+</style>
 
-          data.addRow([name, mi, ratio, tooltip]);
-          links.push(link);
-        }
+<script>
+google.charts.load('current', { packages: ['corechart'] });
+google.charts.setOnLoadCallback(init);
 
-        const options = {
-          title: 'Construction',
-          titlePosition: 'center',
-          titleTextStyle: {
-            fontSize: 18,
-            bold: true
-          },
-          hAxis: {
-            title: 'Measured + Indicated (%)',
-            minValue: 0,
-            maxValue: 1
-          },
-          vAxis: {
-            title: 'Proved + Probable / Measured + Indicated (%)',
-            minValue: 0,
-            maxValue: 1
-          },
-          height: 500,
-          pointSize: 10,
-          tooltip: { isHtml: true }
-        };
+function init() {
+  showScatter();
+}
 
-        const chart = new google.visualization.ScatterChart(
-          document.getElementById('chart')
-        );
+/* ===== MENU ===== */
+function showScatter() {
+  toggle('scatter');
+  drawScatter();
+}
 
-        google.visualization.events.addListener(chart, 'select', function () {
-          const sel = chart.getSelection();
-          if (!sel.length) return;
+function showBubble() {
+  toggle('bubble');
+  drawBubble();
+}
 
-          const row = sel[0].row;
-          if (links[row]) {
-            window.open(links[row], '_blank');
-          }
-        });
+function toggle(type) {
+  document.getElementById('scatterBox').classList.remove('active');
+  document.getElementById('bubbleBox').classList.remove('active');
+  document.getElementById(type + 'Box').classList.add('active');
 
-        chart.draw(data, options);
-      }
-    </script>
-  </head>
+  document.getElementById('btnScatter').classList.remove('active');
+  document.getElementById('btnBubble').classList.remove('active');
+  document.getElementById('btn' + cap(type)).classList.add('active');
+}
 
-  <body>
-    <div id="chart"></div>
-  </body>
+function cap(s) {
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+/* ================= SCATTER ================= */
+async function drawScatter() {
+  const url = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSHkysTN6roFag5cFJv97rmXIsO9vKLKaAXmJxbeAD0v4klws329T8nwBI1ftUFKvrukkvLYM9vPysK/pub?gid=1396253890&single=true&output=csv';
+  const csv = await (await fetch(url)).text();
+  const rows = csv.trim().split('\n').slice(1);
+
+  const data = new google.visualization.DataTable();
+  data.addColumn('string', 'Name');               // X axis categories
+  data.addColumn('number', 'Measured + Indicated'); // Y axis
+  data.addColumn('number', 'P+P / M+I');          // Bubble size (optional)
+  data.addColumn({ type:'string', role:'tooltip', p:{html:true} }); // placeholder
+
+  const links = [];
+
+  rows.forEach(r => {
+    const c = r.split(',').map(x => x.replace(/"/g,'').trim());
+    const mi = parseFloat(c[1]);
+    const ratio = parseFloat(c[2]);
+    if (isNaN(mi) || isNaN(ratio)) return;
+
+    data.addRow([c[0], mi, ratio, '']);
+    links.push(c[5]);
+  });
+
+  const chartDiv = document.getElementById('scatter');
+  const tooltip = document.getElementById('customTooltip');
+  const chart = new google.visualization.ScatterChart(chartDiv);
+
+  // Tooltip customizado
+  google.visualization.events.addListener(chart,'onmouseover', e => {
+    if(e.row == null) return;
+
+    const cli = chart.getChartLayoutInterface();
+    const x = cli.getXLocation(data.getValue(e.row,1));
+    const y = cli.getYLocation(data.getValue(e.row,2));
+
+    // Pega Ore Type e Resources do CSV
+    const c = rows[e.row].split(',').map(x => x.replace(/"/g,'').trim());
+    const oreType = c[4];
+    const resources = c[3];
+
+    tooltip.innerHTML = `
+      <strong>${data.getValue(e.row,0)}</strong><br><br>
+      <b>Measured + Indicated:</b> ${data.getValue(e.row,1)}<br>
+      <b>P+P / M+I:</b> ${data.getValue(e.row,2)}<br>
+      <b>Ore Type:</b> ${oreType}<br>
+      <b>Resources (Mt):</b> ${resources}<br>
+      <span style="color:#0066cc">Click to open source</span>
+    `;
+    tooltip.style.left = chartDiv.offsetLeft + x + 15 + 'px';
+    tooltip.style.top  = chartDiv.offsetTop + y - 10 + 'px';
+    tooltip.style.display = 'block';
+  });
+
+  google.visualization.events.addListener(chart,'onmouseout', () => {
+    tooltip.style.display = 'none';
+  });
+
+  google.visualization.events.addListener(chart,'select', () => {
+    const s = chart.getSelection();
+    if(s.length) window.open(links[s[0].row],'_blank');
+  });
+
+  chart.draw(data,{
+    hAxis:{ title:'Measured + Indicated (%)' },
+    vAxis:{ title:'P+P / M+I (%)' },
+    tooltip:{ trigger:'none' }, // desativa tooltip padrão
+    height:480,
+    pointSize: 8,
+    backgroundColor:'transparent',
+    chartArea: { top:30, left:95, right:230, bottom:120, backgroundColor:'transparent' }
+  });
+}
+
+/* ================= BUBBLE ================= */
+async function drawBubble() {
+  const url = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSHkysTN6roFag5cFJv97rmXIsO9vKLKaAXmJxbeAD0v4klws329T8nwBI1ftUFKvrukkvLYM9vPysK/pub?gid=1396253890&single=true&output=csv';
+  const csv = await (await fetch(url)).text();
+  const rows = csv.trim().split('\n').slice(1);
+
+  const data = new google.visualization.DataTable();
+  data.addColumn('string','ID');
+  data.addColumn('number','Measured + Indicated');
+  data.addColumn('number','P+P / M+I');
+  data.addColumn('string','Ore Type');
+  data.addColumn('number','Resources');
+  data.addColumn('string','Company');
+  data.addColumn('string','Link');
+
+  rows.forEach(r => {
+    const c = r.split(',').map(x => x.replace(/"/g,'').trim());
+    const mi = parseFloat(c[1]);
+    const ratio = parseFloat(c[2]);
+    const resources = parseFloat(c[3].replace(/\D/g,''));
+    if (isNaN(mi)||isNaN(ratio)||isNaN(resources)) return;
+    data.addRow(['', mi, ratio, c[4], resources, c[0], c[5]]);
+  });
+
+  const chartDiv = document.getElementById('bubble');
+  const tooltip = document.getElementById('customTooltip');
+  const chart = new google.visualization.BubbleChart(chartDiv);
+
+  google.visualization.events.addListener(chart,'onmouseover', e => {
+    if (e.row == null) return;
+    const cli = chart.getChartLayoutInterface();
+    const x = cli.getXLocation(data.getValue(e.row,1));
+    const y = cli.getYLocation(data.getValue(e.row,2));
+
+    tooltip.innerHTML = `
+      <strong>${data.getValue(e.row,5)}</strong><br><br>
+      <b>Measured + Indicated:</b> ${data.getValue(e.row,1)}<br>
+      <b>P+P / M+I:</b> ${data.getValue(e.row,2)}<br>
+      <b>Ore Type:</b> ${data.getValue(e.row,3)}<br>
+      <b>Resources (Mt):</b> ${data.getValue(e.row,4)}<br>
+      <span style="color:#0066cc">Click to open source</span>
+    `;
+    tooltip.style.left = chartDiv.offsetLeft + x + 15 + 'px';
+    tooltip.style.top  = chartDiv.offsetTop + y - 10 + 'px';
+    tooltip.style.display = 'block';
+  });
+
+  google.visualization.events.addListener(chart,'onmouseout', () => {
+    tooltip.style.display = 'none';
+  });
+
+  google.visualization.events.addListener(chart,'select', () => {
+    const s = chart.getSelection();
+    if(s.length) window.open(data.getValue(s[0].row,6),'_blank');
+  });
+
+  chart.draw(data,{
+    hAxis:{ title:'Measured + Indicated (%)', minValue:-0.1, baselineColor:'transparent' },
+    vAxis:{ title:'P+P / M+I (%)', baselineColor:'transparent' },
+    bubble:{ textStyle:{ fontSize:0 } },
+    legend:{ position:'right' },
+    tooltip:{ trigger:'none' },
+    height:420,
+    backgroundColor:'transparent',
+    chartArea: { top:30, left:95, right:230, bottom:60, backgroundColor:'transparent' }
+  });
+}
+</script>
+</head>
+
+<body>
+
+<h1 class="page-title">Construction</h1>
+
+<div class="chart-menu">
+  <button id="btnScatter" onclick="showScatter()">Scatter Chart</button>
+  <button id="btnBubble" onclick="showBubble()">Bubble Chart</button>
+</div>
+
+<div id="scatterBox" class="chart-box chart-bg active">
+  <div id="scatter"></div>
+</div>
+
+<div id="bubbleBox" class="chart-box chart-bg">
+  <div id="bubble"></div>
+  <div class="size-legend">
+    Bubble size = Resources (Mt)
+  </div>
+</div>
+
+<div id="customTooltip"></div>
+
+</body>
 </html>
-
