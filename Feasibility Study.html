@@ -14,6 +14,15 @@ body {
   padding: 20px;
 }
 
+/* ===== TÍTULO ===== */
+.page-title {
+  text-align: center;
+  font-size: 28px;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 20px;
+}
+
 /* ===== MENU ===== */
 .chart-menu {
   text-align: center;
@@ -174,12 +183,12 @@ async function drawScatter() {
     height:480,
     backgroundColor:'transparent',
     chartArea: {
-  top: 30,      // ↓ diminui este valor
-  left: 95,
-  right: 230,
-  bottom: 120,
-  backgroundColor: 'transparent'
-}
+      top: 30,
+      left: 95,
+      right: 230,
+      bottom: 120,
+      backgroundColor: 'transparent'
+    }
   });
 }
 
@@ -251,21 +260,24 @@ async function drawBubble() {
     bubble:{ textStyle:{ fontSize:0 } },
     legend:{ position:'right' },
     tooltip:{ trigger:'none' },
-    height:480,
+    height:420,
     backgroundColor:'transparent',
     chartArea: {
-  top: 30,      // ↓ diminui este valor
-  left: 95,
-  right: 230,
-  bottom: 60,
-  backgroundColor: 'transparent'
-}
+      top: 30,
+      left: 95,
+      right: 230,
+      bottom: 60,
+      backgroundColor: 'transparent'
+    }
   });
 }
 </script>
 </head>
 
 <body>
+
+<!-- ===== TÍTULO ===== -->
+<h1 class="page-title">Feasibility Study</h1>
 
 <div class="chart-menu">
   <button id="btnScatter" onclick="showScatter()">Scatter Chart</button>
@@ -289,4 +301,5 @@ async function drawBubble() {
 
 </body>
 </html>
+
 
