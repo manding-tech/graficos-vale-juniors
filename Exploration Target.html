@@ -91,19 +91,26 @@ body {
   white-space: nowrap;
 }
 
-/* LEGENDA SIMPLES DO TAMANHO */
+/* LEGENDA */
 .size-legend {
   margin-top: 6px;
   margin-left: 80px;
   font-size: 15px;
   color: #000;
-  text-align: left;
 }
 </style>
 
 <script>
 google.charts.load('current', { packages: ['corechart'] });
 google.charts.setOnLoadCallback(init);
+
+/* ===== CSVs ===== */
+const CSV_JUNIORS =
+'https://docs.google.com/spreadsheets/d/e/2PACX-1vSHkysTN6roFag5cFJv97rmXIsO9vKLKaAXmJxbeAD0v4klws329T8nwBI1ftUFKvrukkvLYM9vPysK/pub?gid=1283363545&single=true&output=csv';
+
+// por enquanto vazia, sem problema
+const CSV_MAJORS = 
+'https://docs.google.com/spreadsheets/d/e/2PACX-1vSld_qDJOwo6IuHoTPH4P2jf28opor0WkbCue_em-EDMlGjV5ZbN0kNHZMGxcdUsKCgkzVVys9kfu7D/pub?gid=1283363545&single=true&output=csv'
 
 function init() {
   showScatter();
@@ -121,12 +128,12 @@ function showBubble() {
 }
 
 function toggle(type) {
-  document.getElementById('scatterBox').classList.remove('active');
-  document.getElementById('bubbleBox').classList.remove('active');
+  scatterBox.classList.remove('active');
+  bubbleBox.classList.remove('active');
   document.getElementById(type + 'Box').classList.add('active');
 
-  document.getElementById('btnScatter').classList.remove('active');
-  document.getElementById('btnBubble').classList.remove('active');
+  btnScatter.classList.remove('active');
+  btnBubble.classList.remove('active');
   document.getElementById('btn' + cap(type)).classList.add('active');
 }
 
@@ -134,65 +141,79 @@ function cap(s) {
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
+/* ===== REDRAW ===== */
+function redraw() {
+  if (scatterBox.classList.contains('active')) {
+    drawScatter();
+  } else {
+    drawBubble();
+  }
+}
+
+/* ===== CSV ===== */
+async function loadCSV(url) {
+  const csv = await (await fetch(url)).text();
+  return csv.trim().split('\n').slice(1);
+}
+
 /* ================= SCATTER ================= */
 async function drawScatter() {
-  const url = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSHkysTN6roFag5cFJv97rmXIsO9vKLKaAXmJxbeAD0v4klws329T8nwBI1ftUFKvrukkvLYM9vPysK/pub?gid=1283363545&single=true&output=csv';
-  const csv = await (await fetch(url)).text();
-  const rows = csv.trim().split('\n').slice(1);
+
+  const showJ = chkJ.checked;
+  const showM = chkM.checked;
+
+  let rows = [];
+  if (showJ) rows = rows.concat(await loadCSV(CSV_JUNIORS));
+  if (showM) rows = rows.concat(await loadCSV(CSV_MAJORS));
+
+  scatter.innerHTML = "";
+  if (!rows.length) return;
 
   const data = new google.visualization.DataTable();
-  data.addColumn('string', 'Name');               // X axis categories
-  data.addColumn('number', 'Measured + Indicated'); // Y axis
-  data.addColumn('number', 'P+P / M+I');          // Bubble size (optional)
-  data.addColumn({ type:'string', role:'tooltip', p:{html:true} }); // placeholder
+  data.addColumn('string','Name');
+  data.addColumn('number','Measured + Indicated');
+  data.addColumn('number','P+P / M+I');
+  data.addColumn({ type:'string', role:'tooltip', p:{html:true} });
 
   const links = [];
 
-  rows.forEach(r => {
-    const c = r.split(',').map(x => x.replace(/"/g,'').trim());
+  rows.forEach(r=>{
+    const c = r.split(',').map(x=>x.replace(/"/g,'').trim());
     const mi = parseFloat(c[1]);
     const ratio = parseFloat(c[2]);
-    if (isNaN(mi) || isNaN(ratio)) return;
-
+    if (isNaN(mi)||isNaN(ratio)) return;
     data.addRow([c[0], mi, ratio, '']);
     links.push(c[5]);
   });
 
-  const chartDiv = document.getElementById('scatter');
-  const tooltip = document.getElementById('customTooltip');
-  const chart = new google.visualization.ScatterChart(chartDiv);
+  const chart = new google.visualization.ScatterChart(scatter);
+  google.visualization.events.removeAllListeners(chart);
 
-  // Tooltip customizado
-  google.visualization.events.addListener(chart,'onmouseover', e => {
-    if(e.row == null) return;
-
+  google.visualization.events.addListener(chart,'onmouseover', e=>{
+    if(e.row==null) return;
     const cli = chart.getChartLayoutInterface();
     const x = cli.getXLocation(data.getValue(e.row,1));
     const y = cli.getYLocation(data.getValue(e.row,2));
+    const c = rows[e.row].split(',').map(x=>x.replace(/"/g,'').trim());
 
-    // Pega Ore Type e Resources do CSV
-    const c = rows[e.row].split(',').map(x => x.replace(/"/g,'').trim());
-    const oreType = c[4];
-    const resources = c[3];
-
-    tooltip.innerHTML = `
-      <strong>${data.getValue(e.row,0)}</strong><br><br>
-      <b>Measured + Indicated:</b> ${data.getValue(e.row,1)}<br>
-      <b>P+P / M+I:</b> ${data.getValue(e.row,2)}<br>
-      <b>Ore Type:</b> ${oreType}<br>
-      <b>Resources (Mt):</b> ${resources}<br>
+    customTooltip.innerHTML = `
+      <strong>${c[0]}</strong><br><br>
+      <b>Measured + Indicated:</b> ${c[1]}<br>
+      <b>P+P / M+I:</b> ${c[2]}<br>
+      <b>Ore Type:</b> ${c[4]}<br>
+      <b>Resources (Mt):</b> ${c[3]}<br>
       <span style="color:#0066cc">Click to open source</span>
     `;
-    tooltip.style.left = chartDiv.offsetLeft + x + 15 + 'px';
-    tooltip.style.top  = chartDiv.offsetTop + y - 10 + 'px';
-    tooltip.style.display = 'block';
+    customTooltip.style.left = scatter.offsetLeft + x + 15 + 'px';
+    customTooltip.style.top  = scatter.offsetTop + y - 10 + 'px';
+    customTooltip.style.display='block';
   });
 
-  google.visualization.events.addListener(chart,'onmouseout', () => {
-    tooltip.style.display = 'none';
+  google.visualization.events.addListener(chart,'onmouseout',()=>{
+    customTooltip.style.display='none';
   });
 
-  google.visualization.events.addListener(chart,'select', () => {
+  google.visualization.events.addListener(chart,'select',()=>{
     const s = chart.getSelection();
     if(s.length) window.open(links[s[0].row],'_blank');
   });
@@ -200,19 +221,28 @@ async function drawScatter() {
   chart.draw(data,{
     hAxis:{ title:'Measured + Indicated (%)' },
     vAxis:{ title:'P+P / M+I (%)' },
-    tooltip:{ trigger:'none' }, // desativa tooltip padrão
+    tooltip:{ trigger:'none' },
     height:480,
-    pointSize: 8,
+    pointSize:8,
     backgroundColor:'transparent',
-    chartArea: { top:30, left:95, right:230, bottom:120, backgroundColor:'transparent' }
+    chartArea:{ top:30, left:95, right:230, bottom:120 }
   });
 }
 
 /* ================= BUBBLE ================= */
 async function drawBubble() {
-  const url = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSHkysTN6roFag5cFJv97rmXIsO9vKLKaAXmJxbeAD0v4klws329T8nwBI1ftUFKvrukkvLYM9vPysK/pub?gid=1283363545&single=true&output=csv';
-  const csv = await (await fetch(url)).text();
-  const rows = csv.trim().split('\n').slice(1);
+
+  bubble.innerHTML = "";
+  bubbleLegend.style.display = "none";
+
+  const showJ = chkJ.checked;
+  const showM = chkM.checked;
+
+  let rows = [];
+  if (showJ) rows = rows.concat(await loadCSV(CSV_JUNIORS));
+  if (showM) rows = rows.concat(await loadCSV(CSV_MAJORS));
+
+  if (!rows.length) return;
 
   const data = new google.visualization.DataTable();
   data.addColumn('string','ID');
@@ -223,26 +253,29 @@ async function drawBubble() {
   data.addColumn('string','Company');
   data.addColumn('string','Link');
 
-  rows.forEach(r => {
-    const c = r.split(',').map(x => x.replace(/"/g,'').trim());
+  rows.forEach(r=>{
+    const c = r.split(',').map(x=>x.replace(/"/g,'').trim());
     const mi = parseFloat(c[1]);
     const ratio = parseFloat(c[2]);
-    const resources = parseFloat(c[3].replace(/\D/g,''));
-    if (isNaN(mi)||isNaN(ratio)||isNaN(resources)) return;
-    data.addRow(['', mi, ratio, c[4], resources, c[0], c[5]]);
+    const res = parseFloat(c[3].replace(/\D/g,''));
+    if (isNaN(mi)||isNaN(ratio)||isNaN(res)) return;
+    data.addRow(['', mi, ratio, c[4], res, c[0], c[5]]);
   });
 
-  const chartDiv = document.getElementById('bubble');
-  const tooltip = document.getElementById('customTooltip');
-  const chart = new google.visualization.BubbleChart(chartDiv);
+  if (data.getNumberOfRows() === 0) return;
 
-  google.visualization.events.addListener(chart,'onmouseover', e => {
-    if (e.row == null) return;
+  bubbleLegend.style.display = "block";
+
+  const chart = new google.visualization.BubbleChart(bubble);
+  google.visualization.events.removeAllListeners(chart);
+
+  google.visualization.events.addListener(chart,'onmouseover', e=>{
+    if(e.row==null) return;
     const cli = chart.getChartLayoutInterface();
     const x = cli.getXLocation(data.getValue(e.row,1));
     const y = cli.getYLocation(data.getValue(e.row,2));
 
-    tooltip.innerHTML = `
+    customTooltip.innerHTML = `
       <strong>${data.getValue(e.row,5)}</strong><br><br>
       <b>Measured + Indicated:</b> ${data.getValue(e.row,1)}<br>
       <b>P+P / M+I:</b> ${data.getValue(e.row,2)}<br>
@@ -250,16 +283,16 @@ async function drawBubble() {
       <b>Resources (Mt):</b> ${data.getValue(e.row,4)}<br>
       <span style="color:#0066cc">Click to open source</span>
     `;
-    tooltip.style.left = chartDiv.offsetLeft + x + 15 + 'px';
-    tooltip.style.top  = chartDiv.offsetTop + y - 10 + 'px';
-    tooltip.style.display = 'block';
+    customTooltip.style.left = bubble.offsetLeft + x + 15 + 'px';
+    customTooltip.style.top  = bubble.offsetTop + y - 10 + 'px';
+    customTooltip.style.display='block';
   });
 
-  google.visualization.events.addListener(chart,'onmouseout', () => {
-    tooltip.style.display = 'none';
+  google.visualization.events.addListener(chart,'onmouseout',()=>{
+    customTooltip.style.display='none';
   });
 
-  google.visualization.events.addListener(chart,'select', () => {
+  google.visualization.events.addListener(chart,'select',()=>{
     const s = chart.getSelection();
     if(s.length) window.open(data.getValue(s[0].row,6),'_blank');
   });
@@ -272,7 +305,7 @@ async function drawBubble() {
     tooltip:{ trigger:'none' },
     height:420,
     backgroundColor:'transparent',
-    chartArea: { top:30, left:95, right:230, bottom:60, backgroundColor:'transparent' }
+    chartArea:{ top:30, left:95, right:230, bottom:60 }
   });
 }
 </script>
@@ -287,13 +320,20 @@ async function drawBubble() {
   <button id="btnBubble" onclick="showBubble()">Bubble Chart</button>
 </div>
 
+<div class="chart-menu">
+  <label><input type="checkbox" id="chkJ" checked onchange="redraw()"> Juniors</label>
+  <label style="margin-left:15px">
+    <input type="checkbox" id="chkM" onchange="redraw()"> Majors
+  </label>
+</div>
+
 <div id="scatterBox" class="chart-box chart-bg active">
   <div id="scatter"></div>
 </div>
 
 <div id="bubbleBox" class="chart-box chart-bg">
   <div id="bubble"></div>
-  <div class="size-legend">
+  <div id="bubbleLegend" class="size-legend">
     Bubble size = Resources (Mt)
   </div>
 </div>
@@ -302,7 +342,4 @@ async function drawBubble() {
 
 </body>
 </html>
-
-
-
 
