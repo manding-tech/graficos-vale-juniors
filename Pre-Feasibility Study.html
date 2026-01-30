@@ -2,100 +2,89 @@
 <html lang="pt-br">
 <head>
 <meta charset="utf-8">
-<title>Pre-Feasibility Study</title>
+<title>Exploration Target</title>
 
 <script src="https://www.gstatic.com/charts/loader.js"></script>
 
 <style>
-body {
-  font-family: Arial, sans-serif;
-  background: #f5f5f5;
-  margin: 0;
-  padding: 20px;
+body{
+  font-family:Arial,sans-serif;
+  background:#f5f5f5;
+  margin:0;
+  padding:20px
 }
-
-.page-title {
-  text-align: center;
-  font-size: 28px;
-  font-weight: bold;
-  color: #333;
-  margin-bottom: 20px;
+.dashboard-bg{
+  position:relative;
+  padding:20px
 }
-
-.chart-menu {
-  text-align: center;
-  margin-bottom: 15px;
-  position: relative;
-  z-index: 1000;
+.dashboard-bg::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  background-image:url('fundo.jpg');
+  background-size:cover;
+  background-position:center;
+  opacity:.25;
+  z-index:0
 }
-
-.chart-menu button {
-  padding: 8px 16px;
-  margin: 0 6px;
-  border: none;
-  border-radius: 4px;
-  background: #e0e0e0;
-  cursor: pointer;
-  font-weight: bold;
+.dashboard-bg>*{
+  position:relative;
+  z-index:1
 }
-
-.chart-menu button.active {
-  background: #9e9e9e;
-  color: #fff;
+.page-title{
+  text-align:center;
+  font-size:28px;
+  font-weight:bold;
+  margin-bottom:20px
 }
-
-.chart-box {
-  display: none;
-  position: relative;
-  width: 100%;
-  height: 520px;
+.chart-menu{
+  text-align:center;
+  margin-bottom:15px
 }
-
-.chart-box.active {
-  display: block;
+.chart-menu button{
+  padding:8px 16px;
+  margin:0 6px;
+  border:none;
+  border-radius:4px;
+  background:#e0e0e0;
+  cursor:pointer;
+  font-weight:bold
 }
-
-.chart-bg::before {
-  content: "";
-  position: absolute;
-  inset: -30%;
-  background-image: url('fundo.jpg');
-  background-size: cover;
-  background-position: center;
-  opacity: 0.25;
-  z-index: 0;
+.chart-menu button.active{
+  background:#9e9e9e;
+  color:#fff
 }
-
-.chart-bg > * {
-  position: relative;
-  z-index: 1;
+.chart-box{
+  display:none;
+  width:100%;
+  height:520px
 }
-
-#customTooltip {
-  position: absolute;
-  background: #ffffff;
-  border: 1px solid #bbb;
-  padding: 10px 12px;
-  font-size: 13px;
-  line-height: 1.5;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.25);
-  border-radius: 4px;
-  display: none;
-  pointer-events: none;
-  z-index: 9999;
-  white-space: nowrap;
+.chart-box.active{
+  display:block
 }
-
-.size-legend {
-  margin-top: 6px;
-  margin-left: 80px;
-  font-size: 15px;
-  color: #000;
+#customTooltip{
+  position:absolute;
+  background:#fff;
+  border:1px solid #bbb;
+  padding:10px 12px;
+  font-size:13px;
+  line-height:1.5;
+  box-shadow:0 2px 6px rgba(0,0,0,.25);
+  border-radius:4px;
+  display:none;
+  pointer-events:none;
+  z-index:9999;
+  white-space:nowrap
+}
+.size-legend{
+  margin-top:6px;
+  margin-left:80px;
+  font-size:15px
 }
 </style>
 
 <script>
-google.charts.load('current', { packages: ['corechart'] });
+google.charts.load('current',{packages:['corechart']});
 google.charts.setOnLoadCallback(init);
 
 const CSV_JUNIORS =
@@ -104,237 +93,196 @@ const CSV_JUNIORS =
 const CSV_MAJORS = 
 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSld_qDJOwo6IuHoTPH4P2jf28opor0WkbCue_em-EDMlGjV5ZbN0kNHZMGxcdUsKCgkzVVys9kfu7D/pub?gid=1447223465&single=true&output=csv';
 
-function init() {
-  showScatter();
-}
+let analysisMode="MI";
 
-function showScatter() {
-  toggle('scatter');
+function init(){ showScatter(); }
+
+/* -------- BOTÕES -------- */
+function showScatter(){
+  scatterBox.classList.add('active');
+  bubbleBox.classList.remove('active');
+  btnScatter.classList.add('active');
+  btnBubble.classList.remove('active');
   drawScatter();
 }
-
-function showBubble() {
-  toggle('bubble');
+function showBubble(){
+  bubbleBox.classList.add('active');
+  scatterBox.classList.remove('active');
+  btnBubble.classList.add('active');
+  btnScatter.classList.remove('active');
   drawBubble();
 }
-
-function toggle(type) {
-  scatterBox.classList.remove('active');
-  bubbleBox.classList.remove('active');
-  document.getElementById(type + 'Box').classList.add('active');
-
-  btnScatter.classList.remove('active');
-  btnBubble.classList.remove('active');
-  document.getElementById('btn' + type.charAt(0).toUpperCase() + type.slice(1)).classList.add('active');
+function setAnalysisMode(m){
+  analysisMode=m;
+  btnMI.classList.toggle('active',m==='MI');
+  btnPP.classList.toggle('active',m==='PP');
+  redraw();
+}
+function redraw(){
+  scatterBox.classList.contains('active') ? drawScatter() : drawBubble();
 }
 
-function redraw() {
-  if (scatterBox.classList.contains('active')) drawScatter();
-  else drawBubble();
-}
-
-async function loadCSV(url) {
-  const csv = await (await fetch(url)).text();
+/* -------- CSV -------- */
+async function loadCSV(url){
+  const csv=await(await fetch(url)).text();
   return csv.trim().split('\n').slice(1);
 }
 
 /* ================= SCATTER ================= */
-async function drawScatter() {
+async function drawScatter(){
 
-  const showJ = chkJ.checked;
-  const showM = chkM.checked;
+  let rows=[], links=[];
+  if(chkJ.checked) rows.push(...await loadCSV(CSV_JUNIORS));
+  if(chkM.checked) rows.push(...await loadCSV(CSV_MAJORS));
+  if(!rows.length) return;
 
-  let rows = [];
-  if (showJ) rows = rows.concat(await loadCSV(CSV_JUNIORS));
-  if (showM) rows = rows.concat(await loadCSV(CSV_MAJORS));
+  rows.sort((a,b)=>parseFloat(a.split(',')[1])-parseFloat(b.split(',')[1]));
 
-  scatter.innerHTML = "";
-  if (!rows.length) return;
+  const data=new google.visualization.DataTable();
+  data.addColumn('number','Index');
+  data.addColumn('number','M+I');
+  data.addColumn('number',analysisMode==='MI'?'M+I':'P+P / M+I');
+  data.addColumn({type:'string',role:'tooltip',p:{html:true}});
 
-  rows.sort((a,b)=>{
-    const ca = a.split(',').map(x=>x.replace(/"/g,'').trim());
-    const cb = b.split(',').map(x=>x.replace(/"/g,'').trim());
-    return parseFloat(ca[1]) - parseFloat(cb[1]);
-  });
-
-  const data = new google.visualization.DataTable();
-  data.addColumn('string','Name');
-  data.addColumn('number','Measured + Indicated');
-  data.addColumn('number','P+P / M+I');
-  data.addColumn({ type:'string', role:'tooltip', p:{html:true} });
-
-  const links = [];
-
-  rows.forEach(r=>{
-    const c = r.split(',').map(x=>x.replace(/"/g,'').trim());
-    const mi = parseFloat(c[1]);
-    const ratio = parseFloat(c[2]);
-    if (isNaN(mi)||isNaN(ratio)) return;
-    data.addRow([c[0], mi, ratio, '']);
+  const ticks=[];
+  rows.forEach((r,i)=>{
+    const c=r.split(',').map(x=>x.replace(/"/g,'').trim());
+    const mi=parseFloat(c[1]);
+    const val=analysisMode==='MI'?mi:parseFloat(c[2]);
+    if(isNaN(mi)||isNaN(val)) return;
+    data.addRow([i,mi,val,'']);
+    ticks.push({v:i,f:c[0]});
     links.push(c[5]);
   });
 
-  if (data.getNumberOfRows() === 0) return;
-
-  const chart = new google.visualization.ScatterChart(scatter);
+  const chart=new google.visualization.ScatterChart(scatter);
   google.visualization.events.removeAllListeners(chart);
 
-  google.visualization.events.addListener(chart,'onmouseover', e=>{
+  google.visualization.events.addListener(chart,'onmouseover',e=>{
     if(e.row==null) return;
-    const cli = chart.getChartLayoutInterface();
-    const x = cli.getXLocation(data.getValue(e.row,1));
-    const y = cli.getYLocation(data.getValue(e.row,2));
-    const c = rows[e.row].split(',').map(x=>x.replace(/"/g,'').trim());
+    const c=rows[e.row].split(',').map(x=>x.replace(/"/g,'').trim());
+    const cli=chart.getChartLayoutInterface();
 
-    customTooltip.innerHTML = `
+    customTooltip.innerHTML=`
       <strong>${c[0]}</strong><br><br>
-      <b>Measured + Indicated:</b> ${c[1]}<br>
+      <b>M+I:</b> ${c[1]}<br>
       <b>P+P / M+I:</b> ${c[2]}<br>
       <b>Ore Type:</b> ${c[4]}<br>
-      <b>Resources (Mt):</b> ${c[3]}<br>
-      <span style="color:#0066cc">Click to open source</span>
+      <b>Resources (Mt):</b> ${c[3]}
     `;
-    customTooltip.style.left = scatter.offsetLeft + x + 15 + 'px';
-    customTooltip.style.top  = scatter.offsetTop + y - 10 + 'px';
+    customTooltip.style.left=scatter.offsetLeft+cli.getXLocation(data.getValue(e.row,1))+15+'px';
+    customTooltip.style.top=scatter.offsetTop+cli.getYLocation(data.getValue(e.row,2))-10+'px';
     customTooltip.style.display='block';
   });
 
-  google.visualization.events.addListener(chart,'onmouseout',()=>{
-    customTooltip.style.display='none';
-  });
-
+  google.visualization.events.addListener(chart,'onmouseout',()=>customTooltip.style.display='none');
   google.visualization.events.addListener(chart,'select',()=>{
-    const s = chart.getSelection();
+    const s=chart.getSelection();
     if(s.length) window.open(links[s[0].row],'_blank');
   });
 
   chart.draw(data,{
-    hAxis:{ title:'Measured + Indicated (%)' },
-    vAxis:{ title:'P+P / M+I (%)' },
-    tooltip:{ trigger:'none' },
-    height:480,
+    hAxis:{title:'Companies',ticks,slantedText:true,slantedTextAngle:45},
+    vAxis:{title:analysisMode==='MI'?'Measured + Indicated (%)':'P+P / M+I (%)'},
+    tooltip:{isHtml:true,trigger:'none'},
     pointSize:8,
+    height:480,
     backgroundColor:'transparent',
-    chartArea:{ top:30, left:95, right:230, bottom:120 }
+    chartArea:{top:30,left:95,right:230,bottom:120}
   });
 }
 
 /* ================= BUBBLE ================= */
-async function drawBubble() {
+async function drawBubble(){
 
-  bubble.innerHTML = "";
-  bubbleLegend.style.display = "none";
+  let rows=[];
+  if(chkJ.checked) rows.push(...await loadCSV(CSV_JUNIORS));
+  if(chkM.checked) rows.push(...await loadCSV(CSV_MAJORS));
+  if(!rows.length) return;
 
-  const showJ = chkJ.checked;
-  const showM = chkM.checked;
+  rows.sort((a,b)=>parseFloat(a.split(',')[1])-parseFloat(b.split(',')[1]));
 
-  let rows = [];
-  if (showJ) rows = rows.concat(await loadCSV(CSV_JUNIORS));
-  if (showM) rows = rows.concat(await loadCSV(CSV_MAJORS));
-
-  if (!rows.length) return;
-
-  rows.sort((a,b)=>{
-    const ca = a.split(',').map(x=>x.replace(/"/g,'').trim());
-    const cb = b.split(',').map(x=>x.replace(/"/g,'').trim());
-    return parseFloat(ca[1]) - parseFloat(cb[1]);
-  });
-
-  const data = new google.visualization.DataTable();
-  data.addColumn('string','ID');
-  data.addColumn('number','Measured + Indicated');
-  data.addColumn('number','P+P / M+I');
-  data.addColumn('string','Ore Type');
+  const data=new google.visualization.DataTable();
+  data.addColumn('string','id');   // STRING VAZIA = SEM TEXTO VISUAL
+  data.addColumn('number','M+I');
+  data.addColumn('number',analysisMode==='MI'?'M+I':'P+P / M+I');
+  data.addColumn('string','Ore');
   data.addColumn('number','Resources');
-  data.addColumn('string','Company');
-  data.addColumn('string','Link');
 
+  const meta=[];
   rows.forEach(r=>{
-    const c = r.split(',').map(x=>x.replace(/"/g,'').trim());
-    const mi = parseFloat(c[1]);
-    const ratio = parseFloat(c[2]);
-    const res = parseFloat(c[3].replace(/\D/g,''));
-    if (isNaN(mi)||isNaN(ratio)||isNaN(res)) return;
-    data.addRow(['', mi, ratio, c[4], res, c[0], c[5]]);
+    const c=r.split(',').map(x=>x.replace(/"/g,'').trim());
+    const mi=parseFloat(c[1]);
+    const val=analysisMode==='MI'?mi:parseFloat(c[2]);
+    const res=parseFloat(c[3]);
+    if(isNaN(mi)||isNaN(val)||isNaN(res)) return;
+    data.addRow(['',mi,val,c[4],res]);
+    meta.push(c);
   });
 
-  if (data.getNumberOfRows() === 0) return;
-
-  bubbleLegend.style.display = "block";
-
-  const chart = new google.visualization.BubbleChart(bubble);
+  const chart=new google.visualization.BubbleChart(bubble);
   google.visualization.events.removeAllListeners(chart);
 
-  google.visualization.events.addListener(chart,'onmouseover', e=>{
+  google.visualization.events.addListener(chart,'onmouseover',e=>{
     if(e.row==null) return;
-    const cli = chart.getChartLayoutInterface();
-    const x = cli.getXLocation(data.getValue(e.row,1));
-    const y = cli.getYLocation(data.getValue(e.row,2));
+    const c=meta[e.row];
+    const cli=chart.getChartLayoutInterface();
 
-    customTooltip.innerHTML = `
-      <strong>${data.getValue(e.row,5)}</strong><br><br>
-      <b>Measured + Indicated:</b> ${data.getValue(e.row,1)}<br>
-      <b>P+P / M+I:</b> ${data.getValue(e.row,2)}<br>
-      <b>Ore Type:</b> ${data.getValue(e.row,3)}<br>
-      <b>Resources (Mt):</b> ${data.getValue(e.row,4)}<br>
-      <span style="color:#0066cc">Click to open source</span>
+    customTooltip.innerHTML=`
+      <strong>${c[0]}</strong><br><br>
+      <b>M+I:</b> ${c[1]}<br>
+      <b>P+P / M+I:</b> ${c[2]}<br>
+      <b>Ore Type:</b> ${c[4]}<br>
+      <b>Resources (Mt):</b> ${c[3]}
     `;
-    customTooltip.style.left = bubble.offsetLeft + x + 15 + 'px';
-    customTooltip.style.top  = bubble.offsetTop + y - 10 + 'px';
+    customTooltip.style.left=bubble.offsetLeft+cli.getXLocation(data.getValue(e.row,1))+15+'px';
+    customTooltip.style.top=bubble.offsetTop+cli.getYLocation(data.getValue(e.row,2))-10+'px';
     customTooltip.style.display='block';
   });
 
-  google.visualization.events.addListener(chart,'onmouseout',()=>{
-    customTooltip.style.display='none';
-  });
-
-  google.visualization.events.addListener(chart,'select',()=>{
-    const s = chart.getSelection();
-    if(s.length) window.open(data.getValue(s[0].row,6),'_blank');
+  google.visualization.events.addListener(chart,'onmouseout',()=>customTooltip.style.display='none');
+  google.visualization.events.addListener(chart,'select',e=>{
+    if(e.row!=null) window.open(meta[e.row][5],'_blank');
   });
 
   chart.draw(data,{
-    hAxis:{ title:'Measured + Indicated (%)', minValue:-0.1, maxValue:1.0, baselineColor:'transparent' },
+     hAxis:{ title:'Measured + Indicated (%)', minValue:-0.1, maxValue:1.0, baselineColor:'transparent' },
     vAxis:{ title:'P+P / M+I (%)', minValue:-0.1, maxValue:1.0, baselineColor:'transparent' },
-    bubble:{ textStyle:{ fontSize:0 } },
-    legend:{ position:'right' },
-    tooltip:{ trigger:'none' },
+    bubble:{textStyle:{fontSize:0}},
+    legend:{position:'right'},
+    tooltip:{trigger:'none'},
     height:420,
     backgroundColor:'transparent',
-    chartArea:{ top:30, left:95, right:230, bottom:60 }
+    chartArea:{top:30,left:95,right:230,bottom:60}
   });
 }
 </script>
 </head>
 
 <body>
+<div class="dashboard-bg">
 
 <h1 class="page-title">Pre-Feasibility Study</h1>
 
 <div class="chart-menu">
-  <button id="btnScatter" onclick="showScatter()">Scatter Chart</button>
+  <button id="btnScatter" class="active" onclick="showScatter()">Scatter Chart</button>
   <button id="btnBubble" onclick="showBubble()">Bubble Chart</button>
 </div>
 
 <div class="chart-menu">
+  <button id="btnMI" class="active" onclick="setAnalysisMode('MI')">M+I</button>
+  <button id="btnPP" onclick="setAnalysisMode('PP')">P+P</button>
+</div>
+
+<div class="chart-menu">
   <label><input type="checkbox" id="chkJ" checked onchange="redraw()"> Juniors</label>
-  <label style="margin-left:15px">
-    <input type="checkbox" id="chkM" onchange="redraw()"> Majors
-  </label>
+  <label style="margin-left:15px"><input type="checkbox" id="chkM" onchange="redraw()"> Majors</label>
 </div>
 
-<div id="scatterBox" class="chart-box chart-bg active">
-  <div id="scatter"></div>
-</div>
+<div id="scatterBox" class="chart-box active"><div id="scatter"></div></div>
+<div id="bubbleBox" class="chart-box"><div id="bubble"></div><div class="size-legend">Bubble size = Resources (Mt)</div></div>
 
-<div id="bubbleBox" class="chart-box chart-bg">
-  <div id="bubble"></div>
-  <div id="bubbleLegend" class="size-legend">
-    Bubble size = Resources (Mt)
-  </div>
 </div>
-
 <div id="customTooltip"></div>
-
 </body>
 </html>
